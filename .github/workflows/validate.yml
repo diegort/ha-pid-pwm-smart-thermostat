@@ -20,8 +20,9 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # Distributed as a HACS custom repository: no home-assistant/brands entry
-          ignore: brands
+          # Distributed as a HACS custom repository: brands entry, topics, issues and
+          # license are only required for the HACS default store
+          ignore: brands topics issues license
 
   tests:
     runs-on: ubuntu-latest
