@@ -43,30 +43,12 @@ debug_pid_package:
       heater: input_boolean.test_inner_on_off_heater
 
 
-    - platform: smart_thermostat
-      name: test_thermostat
-      target_sensor: input_number.test_thermostat_sensor
-      # sensor_stale_duration: "00:01:00"
-      cooler:
-        - entity_id: input_boolean.test_thermostat_on_off_cooler
-        - entity_id: climate.test_inner_cooler
-          pid_params: 0.2, 0.1. 0
-          pid_sample_period: "00:00:10"
-        - entity_id: input_number.test_number_thermostat_cooler
-          switch_entity_id: input_boolean.test_number_thermostat_cooler_switch
-          pid_params: 0.2, 0.1. 0
-          pid_sample_period: "00:00:10"
-
-      heater:
-        - entity_id: input_boolean.test_thermostat_on_off_heater
-          # keep_alive: "00:00:10"
-        - entity_id: climate.test_inner_heater
-          pid_params: 0.2, 0.1. 0
-          pid_sample_period: "00:00:10"
-          # keep_alive: "00:00:10"
-        - entity_id: input_number.test_number_thermostat_heater
-          switch_entity_id: input_boolean.test_number_thermostat_heater_switch
-          pid_params: 0.2, 0.1. 0
-          pid_sample_period: "00:00:10"
-          # keep_alive: "00:00:10"
+    # The thermostat under test is created from the UI (pid_pwm_smart_thermostat is UI-only):
+    # name it "test_thermostat" (-> climate.test_thermostat, used by debug_lovelace_dashboard.yaml),
+    # sensor input_number.test_thermostat_sensor, then add:
+    #   coolers: input_boolean.test_thermostat_on_off_cooler (on/off),
+    #            climate.test_inner_cooler (PID 0.2/0.1/0, sample period 10s),
+    #            input_number.test_number_thermostat_cooler (PID 0.2/0.1/0, sample period 10s,
+    #              switch input_boolean.test_number_thermostat_cooler_switch)
+    #   heaters: the same with the *_heater entities.
 

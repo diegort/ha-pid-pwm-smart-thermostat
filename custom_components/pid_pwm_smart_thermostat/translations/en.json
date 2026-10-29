@@ -1,0 +1,339 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PID PWM Smart Thermostat",
+        "description": "After creating the thermostat, add heaters and coolers from its integration page.",
+        "data": {
+          "name": "Name",
+          "target_sensor": "Temperature sensor",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "target_temp": "Initial target temperature",
+          "precision": "Precision",
+          "initial_hvac_mode": "Initial HVAC mode",
+          "sensor_stale_duration": "Sensor stale duration",
+          "heat_cool_disabled": "Disable heat/cool mode",
+          "heat_cool_cold_tolerance": "Heat/cool cold tolerance",
+          "heat_cool_hot_tolerance": "Heat/cool hot tolerance"
+        },
+        "data_description": {
+          "sensor_stale_duration": "Stop all heaters/coolers if the sensor reports nothing for this long.",
+          "heat_cool_cold_tolerance": "In heat/cool mode, heaters start below target minus this value.",
+          "heat_cool_hot_tolerance": "In heat/cool mode, coolers start above target plus this value."
+        },
+        "sections": {
+          "presets": {
+            "name": "Preset temperatures",
+            "description": "Only the presets you fill in are offered.",
+            "data": {
+              "away": "Away",
+              "eco": "Eco",
+              "comfort": "Comfort",
+              "home": "Home",
+              "sleep": "Sleep",
+              "boost": "Boost"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "max_not_greater_than_min": "Maximum must be greater than minimum.",
+      "invalid_config": "Invalid configuration."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Thermostat settings",
+        "data": {
+          "target_sensor": "Temperature sensor",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "target_temp": "Initial target temperature",
+          "precision": "Precision",
+          "initial_hvac_mode": "Initial HVAC mode",
+          "sensor_stale_duration": "Sensor stale duration",
+          "heat_cool_disabled": "Disable heat/cool mode",
+          "heat_cool_cold_tolerance": "Heat/cool cold tolerance",
+          "heat_cool_hot_tolerance": "Heat/cool hot tolerance"
+        },
+        "data_description": {
+          "sensor_stale_duration": "Stop all heaters/coolers if the sensor reports nothing for this long.",
+          "heat_cool_cold_tolerance": "In heat/cool mode, heaters start below target minus this value.",
+          "heat_cool_hot_tolerance": "In heat/cool mode, coolers start above target plus this value."
+        },
+        "sections": {
+          "presets": {
+            "name": "Preset temperatures",
+            "description": "Only the presets you fill in are offered.",
+            "data": {
+              "away": "Away",
+              "eco": "Eco",
+              "comfort": "Comfort",
+              "home": "Home",
+              "sleep": "Sleep",
+              "boost": "Boost"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "max_not_greater_than_min": "Maximum must be greater than minimum.",
+      "invalid_config": "Invalid configuration."
+    }
+  },
+  "config_subentries": {
+    "heater": {
+      "entry_type": "Heater",
+      "initiate_flow": {
+        "user": "Add heater",
+        "reconfigure": "Reconfigure heater"
+      },
+      "abort": {
+        "reconfigure_successful": "Re-configuration was successful"
+      },
+      "error": {
+        "already_configured": "This entity is already used by this thermostat.",
+        "invalid_config": "Invalid configuration."
+      },
+      "step": {
+        "user": {
+          "title": "Add heater",
+          "description": "Select the entity to control. Switches can be on/off or PWM; numbers and climates are PID controlled.",
+          "data": {
+            "entity_id": "Entity"
+          }
+        },
+        "switch_type": {
+          "title": "Switch control mode",
+          "description": "How should {entity_id} be controlled?",
+          "menu_options": {
+            "on_off": "On/off with tolerances",
+            "pwm": "PWM with PID"
+          }
+        },
+        "on_off": {
+          "title": "On/off switch",
+          "description": "{entity_id}",
+          "data": {
+            "cold_tolerance": "Cold tolerance",
+            "hot_tolerance": "Hot tolerance",
+            "min_cycle_duration": "Minimum cycle duration",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "min_cycle_duration": "Protects the device from fast on/off cycling.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        },
+        "pwm": {
+          "title": "PWM switch (PID)",
+          "description": "{entity_id}. PID output range is 0-100.",
+          "data": {
+            "pwm_period": "PWM period",
+            "kp": "Kp",
+            "ki": "Ki",
+            "kd": "Kd",
+            "pid_sample_period": "PID sample period",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "pwm_period": "The switch is turned on and off once per period according to the PID output.",
+            "kp": "Proportional gain (always positive, inverted internally in cool mode).",
+            "ki": "Integral gain.",
+            "kd": "Derivative gain.",
+            "pid_sample_period": "Fixed PID calculation period. Leave empty to recalculate on every sensor update.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        },
+        "number": {
+          "title": "Number + switch (PID)",
+          "description": "{entity_id}",
+          "data": {
+            "switch_entity_id": "Switch entity",
+            "switch_inverted": "Switch inverted",
+            "kp": "Kp",
+            "ki": "Ki",
+            "kd": "Kd",
+            "pid_sample_period": "PID sample period",
+            "min": "Minimum output",
+            "max": "Maximum output",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "switch_entity_id": "Turned on while the controller is active.",
+            "kp": "Proportional gain (always positive, inverted internally in cool mode).",
+            "ki": "Integral gain.",
+            "kd": "Derivative gain.",
+            "pid_sample_period": "Fixed PID calculation period. Leave empty to recalculate on every sensor update.",
+            "min": "Defaults to the entity's own minimum.",
+            "max": "Defaults to the entity's own maximum.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        },
+        "climate": {
+          "title": "Climate (PID)",
+          "description": "{entity_id}",
+          "data": {
+            "kp": "Kp",
+            "ki": "Ki",
+            "kd": "Kd",
+            "pid_sample_period": "PID sample period",
+            "min": "Minimum output",
+            "max": "Maximum output",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "kp": "Proportional gain (always positive, inverted internally in cool mode).",
+            "ki": "Integral gain.",
+            "kd": "Derivative gain.",
+            "pid_sample_period": "Fixed PID calculation period. Leave empty to recalculate on every sensor update.",
+            "min": "Defaults to the entity's own minimum.",
+            "max": "Defaults to the entity's own maximum.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        }
+      }
+    },
+    "cooler": {
+      "entry_type": "Cooler",
+      "initiate_flow": {
+        "user": "Add cooler",
+        "reconfigure": "Reconfigure cooler"
+      },
+      "abort": {
+        "reconfigure_successful": "Re-configuration was successful"
+      },
+      "error": {
+        "already_configured": "This entity is already used by this thermostat.",
+        "invalid_config": "Invalid configuration."
+      },
+      "step": {
+        "user": {
+          "title": "Add cooler",
+          "description": "Select the entity to control. Switches can be on/off or PWM; numbers and climates are PID controlled.",
+          "data": {
+            "entity_id": "Entity"
+          }
+        },
+        "switch_type": {
+          "title": "Switch control mode",
+          "description": "How should {entity_id} be controlled?",
+          "menu_options": {
+            "on_off": "On/off with tolerances",
+            "pwm": "PWM with PID"
+          }
+        },
+        "on_off": {
+          "title": "On/off switch",
+          "description": "{entity_id}",
+          "data": {
+            "cold_tolerance": "Cold tolerance",
+            "hot_tolerance": "Hot tolerance",
+            "min_cycle_duration": "Minimum cycle duration",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "min_cycle_duration": "Protects the device from fast on/off cycling.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        },
+        "pwm": {
+          "title": "PWM switch (PID)",
+          "description": "{entity_id}. PID output range is 0-100.",
+          "data": {
+            "pwm_period": "PWM period",
+            "kp": "Kp",
+            "ki": "Ki",
+            "kd": "Kd",
+            "pid_sample_period": "PID sample period",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "pwm_period": "The switch is turned on and off once per period according to the PID output.",
+            "kp": "Proportional gain (always positive, inverted internally in cool mode).",
+            "ki": "Integral gain.",
+            "kd": "Derivative gain.",
+            "pid_sample_period": "Fixed PID calculation period. Leave empty to recalculate on every sensor update.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        },
+        "number": {
+          "title": "Number + switch (PID)",
+          "description": "{entity_id}",
+          "data": {
+            "switch_entity_id": "Switch entity",
+            "switch_inverted": "Switch inverted",
+            "kp": "Kp",
+            "ki": "Ki",
+            "kd": "Kd",
+            "pid_sample_period": "PID sample period",
+            "min": "Minimum output",
+            "max": "Maximum output",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "switch_entity_id": "Turned on while the controller is active.",
+            "kp": "Proportional gain (always positive, inverted internally in cool mode).",
+            "ki": "Integral gain.",
+            "kd": "Derivative gain.",
+            "pid_sample_period": "Fixed PID calculation period. Leave empty to recalculate on every sensor update.",
+            "min": "Defaults to the entity's own minimum.",
+            "max": "Defaults to the entity's own maximum.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        },
+        "climate": {
+          "title": "Climate (PID)",
+          "description": "{entity_id}",
+          "data": {
+            "kp": "Kp",
+            "ki": "Ki",
+            "kd": "Kd",
+            "pid_sample_period": "PID sample period",
+            "min": "Minimum output",
+            "max": "Maximum output",
+            "inverted": "Inverted",
+            "keep_alive": "Keep-alive interval"
+          },
+          "data_description": {
+            "kp": "Proportional gain (always positive, inverted internally in cool mode).",
+            "ki": "Integral gain.",
+            "kd": "Derivative gain.",
+            "pid_sample_period": "Fixed PID calculation period. Leave empty to recalculate on every sensor update.",
+            "min": "Defaults to the entity's own minimum.",
+            "max": "Defaults to the entity's own maximum.",
+            "inverted": "Invert the on/off logic of the entity.",
+            "keep_alive": "Resend the current state periodically, for devices that turn off without a signal."
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "initial_hvac_mode": {
+      "options": {
+        "off": "Off",
+        "heat": "Heat",
+        "cool": "Cool"
+      }
+    }
+  }
+}

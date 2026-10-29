@@ -1,0 +1,12 @@
+{
+  "domain": "pid_pwm_smart_thermostat",
+  "name": "PID PWM Smart Thermostat",
+  "codeowners": ["@diegort"],
+  "config_flow": true,
+  "dependencies": ["climate", "sensor", "switch", "number", "input_boolean", "input_number"],
+  "documentation": "https://github.com/diegort/ha-pid-pwm-smart-thermostat",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/diegort/ha-pid-pwm-smart-thermostat/issues",
+  "requirements": ["simple-pid==1.0.1"],
+  "version": "2.0.0-rc.1"
+}

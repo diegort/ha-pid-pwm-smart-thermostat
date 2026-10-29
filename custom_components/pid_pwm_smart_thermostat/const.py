@@ -9,19 +9,19 @@ from homeassistant.const import (
     STATE_UNKNOWN,
     PRECISION_TENTHS,
     PRECISION_HALVES,
-    PRECISION_WHOLES,
-    UnitOfTemperature,
+    PRECISION_WHOLE,
+    Platform,
 )
 
 DOMAIN = "pid_pwm_smart_thermostat"
+PLATFORMS = [Platform.CLIMATE]
+
+# Config subentry types; also the DATA_SCHEMA keys of the heater/cooler lists
+SUBENTRY_HEATER = "heater"
+SUBENTRY_COOLER = "cooler"
 
 # Defaults
 DEFAULT_NAME = "PID PWM Smart Thermostat"
-DEFAULT_TEMP_STEP = 0.5
-DEFAULT_TOLERANCE = 0.3
-DEFAULT_MIN_TEMP = 7
-DEFAULT_MAX_TEMP = 35
-DEFAULT_INITIAL_HVAC_MODE = "off"
 DEFAULT_SWITCH_TOLERANCE = 0.3
 DEFAULT_HEAT_COOL_TOLERANCE = 0.3
 # DEFAULT_PID_KP = 1.0
@@ -45,8 +45,6 @@ CONF_HEAT_COOL_HOT_TOLERANCE = "heat_cool_hot_tolerance"
 CONF_KEEP_ALIVE = "keep_alive"
 CONF_INITIAL_HVAC_MODE = "initial_hvac_mode"
 CONF_PRESETS = "presets"
-# Deprecated configuration options, will be removed in future versions
-CONF_AWAY_TEMP = "away_temp"  # deprecated, use presets instead
 CONF_HEAT_COOL_DISABLED = "heat_cool_disabled"
 CONF_PRECISION = "precision"
 CONF_PID_PARAMS = "pid_params"

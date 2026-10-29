@@ -1,5 +1,5 @@
 {
-  "name": "PID and PWM Smart Thermostat",
+  "name": "PID PWM Smart Thermostat",
   "render_readme": true,
-  "homeassistant": "2025.1.0"
+  "homeassistant": "2025.3.0"
 }

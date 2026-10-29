@@ -7,8 +7,10 @@ import logging
 import math
 from typing import Mapping, Any, Optional, List
 
-import voluptuous as vol
-from voluptuous import ALLOW_EXTRA
+try:
+    import probatio as vol  # HA >= 2026.10 validates with probatio
+except ImportError:  # older HA
+    import voluptuous as vol
 
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
@@ -30,16 +32,14 @@ from homeassistant.components.input_number import DOMAIN as INPUT_NUMBER_DOMAIN
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CoreState, callback, Context, HomeAssistant, split_entity_id
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
-from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.restore_state import RestoreEntity
-from . import DOMAIN, PLATFORMS
 from .controllers import SwitchController, Thermostat, AbstractController, PidParams, NumberPidController, \
     ClimatePidController, REASON_THERMOSTAT_FIRST_RUN, \
     REASON_THERMOSTAT_HVAC_MODE_CHANGED, REASON_THERMOSTAT_TARGET_TEMP_CHANGED, REASON_THERMOSTAT_SENSOR_CHANGED, \
@@ -111,14 +111,6 @@ TARGET_SCHEMA_PID_REGULATOR_NUMBER = TARGET_SCHEMA_PID_REGULATOR_COMMON.extend({
 
 
 def _cv_controller_target(cfg: Any) -> Any:
-    entity_id: str
-
-    if isinstance(cfg, str):
-        entity_id = cfg
-        cfg = {
-            CONF_ENTITY_ID: entity_id
-        }
-
     if CONF_ENTITY_ID not in cfg:
         raise vol.Invalid(f"{CONF_ENTITY_ID} should be specified")
 
@@ -141,18 +133,13 @@ def _cv_controller_target(cfg: Any) -> Any:
         raise vol.Invalid(f"{entity_id}:  Unsupported domain: {domain}")
 
 
-KEY_SCHEMA = vol.Schema({
-    vol.Required(
-        vol.Any(CONF_HEATER, CONF_COOLER),
-        msg=f"Must specify at least one: '{CONF_HEATER}' or '{CONF_COOLER}'"): object
-}, extra=ALLOW_EXTRA)
-
-DATA_SCHEMA = PLATFORM_SCHEMA.extend(
+# Config assembled from a config entry (options + heater/cooler subentries)
+DATA_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+        vol.Required(CONF_NAME): cv.string,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
-        vol.Optional(CONF_HEATER): vol.Any(_cv_controller_target, [_cv_controller_target]),
-        vol.Optional(CONF_COOLER): vol.Any(_cv_controller_target, [_cv_controller_target]),
+        vol.Optional(CONF_HEATER): [_cv_controller_target],
+        vol.Optional(CONF_COOLER): [_cv_controller_target],
         vol.Required(CONF_SENSOR): cv.entity_id,
         vol.Optional(CONF_STALE_DURATION): vol.All(
             cv.time_period, cv.positive_timedelta
@@ -167,8 +154,6 @@ DATA_SCHEMA = PLATFORM_SCHEMA.extend(
             vol.Optional(PRESET_SLEEP): vol.Coerce(float),
             vol.Optional(PRESET_BOOST): vol.Coerce(float),
         }),
-        # Deprecated options
-        vol.Optional(CONF_AWAY_TEMP): vol.Coerce(float),
         vol.Optional(CONF_TARGET_TEMP): vol.Coerce(float),
         vol.Optional(CONF_HEAT_COOL_DISABLED): vol.Coerce(bool),
         vol.Optional(CONF_HEAT_COOL_COLD_TOLERANCE, default=DEFAULT_HEAT_COOL_TOLERANCE): cv.positive_float,
@@ -176,13 +161,12 @@ DATA_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_INITIAL_HVAC_MODE): vol.In(
             [HVACMode.COOL, HVACMode.HEAT, HVACMode.OFF]
         ),
-        vol.Optional(CONF_PRECISION): vol.In(
-            [PRECISION_TENTHS, PRECISION_HALVES, PRECISION_WHOLE]
+        # Coerce: the UI select stores the precision as a string
+        vol.Optional(CONF_PRECISION): vol.All(
+            vol.Coerce(float), vol.In([PRECISION_TENTHS, PRECISION_HALVES, PRECISION_WHOLE])
         )
     }
 )
-
-PLATFORM_SCHEMA = vol.All(KEY_SCHEMA, DATA_SCHEMA)
 
 
 def _create_controllers(
@@ -194,17 +178,14 @@ def _create_controllers(
 ) -> [AbstractController]:
     if conf_list is None:
         return []
-    if not isinstance(conf_list, list):
-        conf_list = [conf_list]
 
     controllers: List[AbstractController] = []
 
-    controller_number = 1
-
     for conf in conf_list:
-        name = f"{prefix}_{controller_number}"
-
         entity_id = conf[CONF_ENTITY_ID]
+        # Name by target entity (e.g. `heater_switch.floor`), used in logs
+        name = f"{prefix}_{entity_id}"
+
         inverted = conf[CONF_INVERTED]
         keep_alive = conf[CONF_KEEP_ALIVE]
 
@@ -299,19 +280,32 @@ def _create_controllers(
 
         if controller:
             controllers.append(controller)
-            controller_number += 1
 
     return controllers
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the smart thermostat platform."""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
+    """Set up the smart thermostat from a config entry.
 
-    # prevent unused variable warn
-    _ = discovery_info
+    Entry options and heater/cooler subentries are assembled into one config dict and validated with DATA_SCHEMA.
+    """
+    if not entry.subentries:
+        # Nothing to control yet: the entity is created once a heater/cooler subentry is added (entry reloads)
+        _LOGGER.info("%s: no heaters/coolers configured yet, thermostat not created", entry.title)
+        return
 
-    await async_setup_reload_service(hass, DOMAIN, PLATFORMS)
+    config = {
+        **entry.options,
+        CONF_NAME: entry.title,
+        CONF_UNIQUE_ID: entry.entry_id,
+    }
+    for subentry in entry.subentries.values():
+        config.setdefault(subentry.subentry_type, []).append(dict(subentry.data))
 
+    async_add_entities([_build_thermostat(hass, DATA_SCHEMA(config))])
+
+
+def _build_thermostat(hass: HomeAssistant, config) -> "SmartThermostat":
     name = config.get(CONF_NAME)
     sensor_entity_id = config.get(CONF_SENSOR)
     sensor_stale_duration = config.get(CONF_STALE_DURATION)
@@ -344,15 +338,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     if PRESET_BOOST in presets:
         preset_temps[PRESET_BOOST] = presets[PRESET_BOOST]
 
-    # Handle deprecated away_temp configuration
-    if CONF_AWAY_TEMP in config:
-        _LOGGER.warning(
-            "Configuration option '%s' is deprecated and will be removed in a future version. "
-            "Please use 'presets' instead",
-            CONF_AWAY_TEMP
-        )
-        preset_temps[PRESET_AWAY] = config[CONF_AWAY_TEMP]
-
     away_temp = preset_temps.get(PRESET_AWAY)
     eco_temp = preset_temps.get(PRESET_ECO)
     comfort_temp = preset_temps.get(PRESET_COMFORT)
@@ -383,31 +368,27 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             heat_cool_hot_tolerance
         )
 
-    async_add_entities(
-        [
-            SmartThermostat(
-                name,
-                controllers,
-                sensor_entity_id,
-                sensor_stale_duration,
-                min_temp,
-                max_temp,
-                target_temp,
-                heat_cool_disabled,
-                heat_cool_cold_tolerance,
-                heat_cool_hot_tolerance,
-                initial_hvac_mode,
-                away_temp,
-                eco_temp,
-                comfort_temp,
-                home_temp,
-                sleep_temp,
-                boost_temp,
-                precision,
-                unit,
-                unique_id,
-            )
-        ]
+    return SmartThermostat(
+        name,
+        controllers,
+        sensor_entity_id,
+        sensor_stale_duration,
+        min_temp,
+        max_temp,
+        target_temp,
+        heat_cool_disabled,
+        heat_cool_cold_tolerance,
+        heat_cool_hot_tolerance,
+        initial_hvac_mode,
+        away_temp,
+        eco_temp,
+        comfort_temp,
+        home_temp,
+        sleep_temp,
+        boost_temp,
+        precision,
+        unit,
+        unique_id,
     )
 
 
